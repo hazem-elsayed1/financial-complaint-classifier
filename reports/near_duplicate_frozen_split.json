@@ -1,0 +1,64 @@
+{
+  "evaluation_type": "frozen_group_disjoint_holdout",
+  "split_strategy": "frozen_complaint_id_manifest",
+  "similarity_threshold": 0.95,
+  "train_samples": 15021,
+  "test_samples": 4142,
+  "similarity_method": "TF-IDF cosine similarity",
+  "similarity_vectorizer": "model_fitted_tfidf",
+  "similarity_reference": "train_plus_validation",
+  "similarity_fit_excludes_test": true,
+  "mean_max_similarity": 0.3846306617367779,
+  "median_max_similarity": 0.277555514863906,
+  "threshold_counts": {
+    "0.80": 668,
+    "0.90": 549,
+    "0.95": 426,
+    "0.99": 53
+  },
+  "group_performance": {
+    "high_similarity": {
+      "samples": 426,
+      "accuracy": 0.9953051643192489,
+      "macro_f1": 0.6662717219589257
+    },
+    "lower_similarity": {
+      "samples": 3716,
+      "accuracy": 0.8016684607104413,
+      "macro_f1": 0.7183208313556443
+    }
+  },
+  "group_class_distribution": {
+    "high_similarity": {
+      "Debt collection": 423,
+      "Money transfer, virtual currency, or money service": 1,
+      "Credit reporting or other personal consumer reports": 1,
+      "Mortgage": 1
+    },
+    "lower_similarity": {
+      "Debt collection": 1090,
+      "Credit card": 680,
+      "Checking or savings account": 660,
+      "Money transfer, virtual currency, or money service": 349,
+      "Mortgage": 274,
+      "Vehicle loan or lease": 216,
+      "Student loan": 138,
+      "Payday loan, title loan, personal loan, or advance loan": 125,
+      "Credit reporting or other personal consumer reports": 106,
+      "Prepaid card": 40,
+      "Debt or credit management": 38
+    }
+  },
+  "debt_collection_performance": {
+    "high_similarity": {
+      "samples": 423,
+      "accuracy": 0.9952718676122931,
+      "macro_f1": 0.3325434439178515
+    },
+    "lower_similarity": {
+      "samples": 1090,
+      "accuracy": 0.8678899082568807,
+      "macro_f1": 0.09292730844793713
+    }
+  }
+}

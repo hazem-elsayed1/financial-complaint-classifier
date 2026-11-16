@@ -1,0 +1,16 @@
+{
+  "dataset_fingerprint": "09b2851fb0db6116bec1360ecc70e52f56598fe4ae3f872799448113b932f8a7",
+  "fingerprint_algorithm": "sha256",
+  "fingerprint_columns": [
+    "Complaint ID",
+    "Consumer complaint narrative",
+    "Product"
+  ],
+  "total_samples": 19163,
+  "split_counts": {
+    "train": 12015,
+    "test": 4142,
+    "validation": 3006
+  },
+  "manifest_fingerprint": "275c792272dcdb373834042224ff840de8bc4c5a616d1f4bca0439eeb74dbb47"
+}

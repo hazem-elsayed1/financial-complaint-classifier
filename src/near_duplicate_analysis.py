@@ -3,14 +3,13 @@ import json
 from pathlib import Path
 
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
+import pandas as pd
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.metrics.pairwise import cosine_similarity
 
 from src.train import (
-    load_training_data,
-    split_data,
-    train_final_model_with_test_data,
+    load_frozen_split,
+    train_model,
 )
 
 
@@ -38,27 +37,65 @@ def maximum_cosine_similarities(
     return np.asarray(max_similarities)
 
 
+def _evaluate_subset(y_test, predictions, mask):
+    if not mask.any():
+        return {"samples": 0, "accuracy": None, "macro_f1": None}
+    return {
+        "samples": int(mask.sum()),
+        "accuracy": float(accuracy_score(y_test.iloc[mask], predictions[mask])),
+        "macro_f1": float(f1_score(
+            y_test.iloc[mask],
+            predictions[mask],
+            average="macro",
+            zero_division=0,
+        )),
+    }
+
+
+def _evaluate_debt_collection_subset(y_test, predictions, mask):
+    """On true Debt collection examples, subset accuracy is class recall."""
+    debt_mask = mask & (y_test.to_numpy() == "Debt collection")
+    metrics = _evaluate_subset(y_test, predictions, debt_mask)
+    return {
+        **metrics,
+        "recall": metrics["accuracy"],
+        "macro_f1_note": (
+            "Deprecated legacy subset macro-F1 over true and predicted labels; "
+            "not comparable to overall 11-class macro-F1."
+        ),
+    }
+
+
 def analyze_near_duplicates(
     csv_path="data/processed/cleaned_complaints.csv",
-    report_path="reports/near_duplicate_analysis.json",
+    report_path="reports/near_duplicate_frozen_split.json",
+    manifest_path="data/splits/group_split_manifest.csv",
 ):
-    """Measure maximum train-test textual similarity."""
+    """Measure similarity and performance on one verified frozen split.
 
-    X, y = load_training_data(csv_path)
+    Diagnostic similarities use the classifier's TF-IDF representation fitted
+    on train plus validation, excluding test. This differs from the full-dataset
+    TF-IDF representation used to generate near-duplicate groups.
+    """
+    path = Path(report_path)
+    if path.name.casefold() == "near_duplicate_analysis.json":
+        raise ValueError(
+            "Historical near-duplicate report is protected; choose a new path."
+        )
 
-    X_train, X_val, X_test, _, _, _ = split_data(X, y)
-
-    # Final training uses both train and validation.
-    X_train_val = X.loc[
-        X.index.isin(X_train.index.union(X_val.index))
-    ]
-
-    vectorizer = TfidfVectorizer(
-        min_df=2,
-        ngram_range=(1, 2),
+    X_train, X_val, X_test, y_train, y_val, y_test = load_frozen_split(
+        csv_path, manifest_path,
     )
+    X_train_val = pd.concat([X_train, X_val])
+    y_train_val = pd.concat([y_train, y_val])
+    if X_train_val.empty:
+        raise ValueError("Training partition (train plus validation) must not be empty.")
+    if X_test.empty:
+        raise ValueError("Test partition must not be empty.")
+    model = train_model(X_train_val, y_train_val)
+    vectorizer = model.named_steps["tfidf"]
 
-    train_vectors = vectorizer.fit_transform(X_train_val)
+    train_vectors = vectorizer.transform(X_train_val)
     test_vectors = vectorizer.transform(X_test)
 
     scores = maximum_cosine_similarities(
@@ -66,83 +103,50 @@ def analyze_near_duplicates(
         train_vectors,
     )
 
-    # Diagnostic evaluation using the already selected model.
-    model, X_test_eval, y_test_eval = (
-        train_final_model_with_test_data(csv_path)
-    )
-
-    # Verify that the test samples have the same order.
-    if not X_test.index.equals(X_test_eval.index):
-        raise ValueError("Test sample order does not match.")
-
-    predictions = model.predict(X_test_eval)
+    predictions = model.predict(X_test)
 
     high_similarity_mask = scores >= 0.95
     lower_similarity_mask = ~high_similarity_mask
 
-    def evaluate_group(mask):
-        if not mask.any():
-            return {
-                "samples": 0,
-                "accuracy": None,
-                "macro_f1": None,
-            }
-
-        return {
-            "samples": int(mask.sum()),
-            "accuracy": float(
-                accuracy_score(
-                    y_test_eval.iloc[mask],
-                    predictions[mask],
-                )
-            ),
-            "macro_f1": float(
-                f1_score(
-                    y_test_eval.iloc[mask],
-                    predictions[mask],
-                    average="macro",
-                    zero_division=0,
-                )
-            ),
-        }
-
     group_performance = {
-        "high_similarity": evaluate_group(high_similarity_mask),
-        "lower_similarity": evaluate_group(lower_similarity_mask),
+        "high_similarity": _evaluate_subset(y_test, predictions, high_similarity_mask),
+        "lower_similarity": _evaluate_subset(y_test, predictions, lower_similarity_mask),
     }
 
     group_class_distribution = {
         "high_similarity": {
             str(k): int(v)
-            for k, v in y_test_eval.iloc[
+            for k, v in y_test.iloc[
                 high_similarity_mask
             ].value_counts().items()
         },
         "lower_similarity": {
             str(k): int(v)
-            for k, v in y_test_eval.iloc[
+            for k, v in y_test.iloc[
                 lower_similarity_mask
             ].value_counts().items()
         },
     }
 
-    debt_mask = (
-        y_test_eval.to_numpy() == "Debt collection"
-    )
-
     debt_collection_performance = {
-        "high_similarity": evaluate_group(
-            high_similarity_mask & debt_mask
+        "high_similarity": _evaluate_debt_collection_subset(
+            y_test, predictions, high_similarity_mask
         ),
-        "lower_similarity": evaluate_group(
-            lower_similarity_mask & debt_mask
+        "lower_similarity": _evaluate_debt_collection_subset(
+            y_test, predictions, lower_similarity_mask
         ),
     }
 
     report = {
+        "evaluation_type": "frozen_holdout",
+        "split_strategy": "frozen_complaint_id_manifest",
+        "similarity_threshold": 0.95,
         "train_samples": len(X_train_val),
         "test_samples": len(X_test),
         "similarity_method": "TF-IDF cosine similarity",
+        "similarity_vectorizer": "model_fitted_tfidf",
+        "similarity_reference": "train_plus_validation",
+        "similarity_fit_excludes_test": True,
         "mean_max_similarity": float(np.mean(scores)),
         "median_max_similarity": float(np.median(scores)),
         "threshold_counts": {
@@ -156,7 +160,6 @@ def analyze_near_duplicates(
         "debt_collection_performance": debt_collection_performance,
     }
 
-    path = Path(report_path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     path.write_text(

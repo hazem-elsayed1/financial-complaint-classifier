@@ -9,6 +9,11 @@ TEXT_COL = "Consumer complaint narrative"
 TARGET_COL = "Product"
 
 
+def has_product_label(label) -> bool:
+    """Accept non-blank category strings without rewriting labels."""
+    return isinstance(label, str) and bool(label.strip())
+
+
 def remove_missing_narratives(df: pd.DataFrame) -> pd.DataFrame:
     """Remove rows with missing complaint narratives."""
     return df.dropna(subset=[TEXT_COL]).copy()
@@ -64,6 +69,7 @@ def clean_dataset(df: pd.DataFrame) -> pd.DataFrame:
 
     # Step 1: Remove missing complaint narratives.
     df_clean = remove_missing_narratives(df)
+    df_clean = df_clean.loc[df_clean[TARGET_COL].map(has_product_label)].copy()
 
     # Step 2: Remove texts that become empty after normalization.
     normalized = df_clean[TEXT_COL].apply(

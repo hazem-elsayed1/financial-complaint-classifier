@@ -29,3 +29,12 @@ models/
 
 # Pytest cache
 .pytest_cache/
+
+# Local backups and temporary patches
+*.patch
+*.zip
+
+# Local split metadata migration artifacts
+data/splits/*.candidate.json
+data/splits/*.review-candidate.json
+data/splits/*.legacy-backup.json

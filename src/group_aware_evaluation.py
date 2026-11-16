@@ -3,95 +3,10 @@ import json
 from pathlib import Path
 
 import numpy as np
-from scipy.sparse import vstack
-from scipy.sparse.csgraph import connected_components
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, f1_score
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.model_selection import GroupShuffleSplit
 
+from src.grouping import create_text_groups, group_aware_split
 from src.train import load_training_data, train_model
-
-
-def create_text_groups(texts, threshold=0.95, batch_size=100):
-    """Group near-duplicate texts using batched sparse similarity."""
-
-    texts = list(texts)
-
-    if not 0 < threshold <= 1:
-        raise ValueError("threshold must be in (0, 1].")
-
-    if batch_size <= 0:
-        raise ValueError("batch_size must be positive.")
-
-    if not texts:
-        return np.array([], dtype=int)
-
-    vectorizer = TfidfVectorizer(
-        ngram_range=(1, 2),
-    )
-
-    vectors = vectorizer.fit_transform(texts)
-    adjacency_batches = []
-
-    for start in range(0, len(texts), batch_size):
-        batch = vectors[start:start + batch_size]
-
-        similarities = cosine_similarity(
-            batch,
-            vectors,
-            dense_output=False,
-        )
-
-        similarities.data = (
-            similarities.data >= threshold
-        ).astype(np.int8)
-
-        similarities.eliminate_zeros()
-        adjacency_batches.append(similarities)
-
-    adjacency = vstack(
-        adjacency_batches,
-        format="csr",
-    )
-
-    _, group_ids = connected_components(
-        adjacency,
-        directed=False,
-    )
-
-    return group_ids
-
-
-def group_aware_split(X, y, groups, test_size=0.20, random_state=42):
-    """Split data without sharing groups between train and test."""
-
-    if len(X) != len(y) or len(X) != len(groups):
-        raise ValueError("X, y, and groups must have equal lengths.")
-
-    if not 0 < test_size < 1:
-        raise ValueError("test_size must be between 0 and 1.")
-
-    if len(np.unique(groups)) < 2:
-        raise ValueError("At least two distinct groups are required.")
-
-    splitter = GroupShuffleSplit(
-        n_splits=1,
-        test_size=test_size,
-        random_state=random_state,
-    )
-
-    train_idx, test_idx = next(
-        splitter.split(X, y, groups=groups)
-    )
-
-    train_groups = set(np.asarray(groups)[train_idx])
-    test_groups = set(np.asarray(groups)[test_idx])
-
-    if train_groups & test_groups:
-        raise RuntimeError("Group overlap detected.")
-
-    return train_idx, test_idx
 
 
 def evaluate_group_aware(
@@ -99,8 +14,15 @@ def evaluate_group_aware(
     report_path="reports/group_aware_evaluation.json",
     threshold=0.95,
     batch_size=100,
+    *,
+    overwrite: bool = False,
 ):
-    """Evaluate the model on a group-disjoint train/test split."""
+    """Evaluate a newly generated split; replace reports only with overwrite=True."""
+    path = Path(report_path)
+    if not overwrite and (path.exists() or path.is_symlink()):
+        raise FileExistsError(
+            f"Report already exists: {path}. Choose a new path or pass overwrite=True."
+        )
 
     X, y = load_training_data(csv_path)
 
@@ -128,6 +50,7 @@ def evaluate_group_aware(
 
     report = {
         "evaluation_type": "near_duplicate_group_aware",
+        "split_source": "newly_generated_group_shuffle_split",
         "similarity_threshold": threshold,
         "total_samples": int(len(X)),
         "total_groups": int(len(np.unique(groups))),
@@ -162,13 +85,11 @@ def evaluate_group_aware(
         },
     }
 
-    path = Path(report_path)
+    serialized = json.dumps(report, indent=2, allow_nan=False)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    path.write_text(
-        json.dumps(report, indent=2),
-        encoding="utf-8",
-    )
+    with path.open("w" if overwrite else "x", encoding="utf-8", newline="\n") as file:
+        file.write(serialized + "\n")
 
     return report
 
