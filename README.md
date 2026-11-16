@@ -1094,4 +1094,6 @@ Any future model selection should use appropriate training and validation data w
 
 ## 21. License
 
-No license file is present in the local working tree or tracked local history inspected for this release. Both this README and the locally cached `origin/main` README state that no license has been selected. No live remote history was fetched or checked; no discrepancy was found in the local references. A license decision remains a release task.
+The project source code is licensed under the [MIT License](LICENSE).
+
+The MIT License does not automatically grant rights to third-party datasets, CFPB complaint narratives, trademarks, or other third-party materials. Users must check the applicable terms for those materials. The dataset provenance and publication disclosures in Sections 2 and 18.2 remain applicable.
