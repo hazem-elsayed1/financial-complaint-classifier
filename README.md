@@ -2,7 +2,7 @@
 
 [![Python Tests](https://github.com/hazem-elsayed1/financial-complaint-classifier/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/hazem-elsayed1/financial-complaint-classifier/actions/workflows/tests.yml)
 
-Classifies consumer financial complaint narratives into **11 financial product categories** with a TF-IDF and Logistic Regression pipeline, trained on complaints derived from the CFPB Consumer Complaint Database. Model performance is measured on a frozen, held-out test partition. The frozen split keeps groups identified by the project's near-duplicate grouping procedure within a single partition. It does not remove all similar text: under the classifier's own TF-IDF representation, 426 of the 4,142 test complaints (10.3%) still have a cosine similarity of at least 0.95 to a training complaint. See the [frozen-split similarity diagnostic](#57-frozen-split-near-duplicate-diagnostic) and its [report](reports/near_duplicate_frozen_split.json).
+Classifies consumer financial complaint narratives into **11 financial product categories** with a TF-IDF and Logistic Regression pipeline, trained on complaints derived from the CFPB Consumer Complaint Database. Model performance is measured on a frozen, held-out test partition. The frozen split keeps groups identified by the project's near-duplicate grouping procedure within a single partition. It does not remove all similar text: under the classifier's own TF-IDF representation, 426 of the 4,142 test complaints (10.3%) still have a cosine similarity of at least 0.95 to a complaint in the combined train and validation partitions. See the [frozen-split similarity diagnostic](#57-frozen-split-near-duplicate-diagnostic) and its [report](reports/near_duplicate_frozen_split.json).
 
 ### Results at a Glance
 
@@ -970,17 +970,19 @@ If no model is mounted, or the mounted file is not a fitted pipeline, the contai
 
 ## 15. Interactive Streamlit Demo
 
-![Streamlit Demo](assets/streamlit-demo.png)
+![Streamlit demo classifying a duplicate credit card charge complaint as Credit card](assets/streamlit-demo.png)
 
-The project includes a Streamlit interface for testing the trained classifier.
+The project includes a Streamlit interface for testing the trained classifier. It uses the same inference code as the API: the model is located with the same rules (`COMPLAINT_MODEL_PATH`, or `models/ticket_classifier.joblib` by default), checked to be a fitted pipeline, and every prediction comes from `predict_complaint()`.
 
 ### Features
 
-- Enter a financial complaint in a text area.
-- Classify the complaint using the trained model.
-- Display the predicted financial product category.
-- Validate empty inputs.
-- Cache the loaded model to avoid repeated loading.
+- Choose one of four synthetic example complaints, or write your own.
+- Select **Classify complaint** to see the predicted product category in a single result panel, together with the complaint it applies to.
+- If the complaint is edited after a prediction, the old prediction is hidden until the new text is classified.
+- Blank or whitespace-only input shows guidance instead of a prediction.
+- If the model is missing or is not a fitted pipeline, the page explains what to fix and disables classification.
+- The model is loaded once and cached.
+- A navy and slate theme with a single teal accent is defined in `.streamlit/config.toml`.
 
 ### Running the Application
 

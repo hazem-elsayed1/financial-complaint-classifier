@@ -1,0 +1,28 @@
+# Theme for the Streamlit demo (app.py): navy text on slate surfaces,
+# with teal as the single accent for the primary action and the result.
+
+[theme]
+base = "light"
+primaryColor = "#0F766E"
+backgroundColor = "#F8FAFC"
+secondaryBackgroundColor = "#EEF2F6"
+textColor = "#0A142B"
+borderColor = "#CBD5E1"
+linkColor = "#0F766E"
+blueBackgroundColor = "#E2E8F0"
+blueTextColor = "#0A142B"
+baseRadius = "0.5rem"
+# Less empty space above and below the content keeps the result panel
+# closer to the button on small screens.
+paddingTop = "3rem"
+paddingBottom = "3rem"
+# h1: page title, h2: section labels, h3: the predicted product, which is
+# the most important text after a classification.
+headingFontSizes = ["2.25rem", "1.25rem", "1.75rem"]
+headingFontWeights = [700, 600, 700]
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
