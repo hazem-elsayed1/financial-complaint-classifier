@@ -1,0 +1,17 @@
+# Allowlist: the build context contains only what the API image needs.
+# Datasets (data/), model artifacts (models/, *.joblib), reports, notebooks,
+# the virtual environment, and Git metadata never enter the build context.
+# The model is mounted read-only when the container runs; see README 14.2.
+*
+!requirements-api.txt
+!src/api.py
+!src/predict.py
+
+# Defense in depth: never send data or model files, even if allowlisted above.
+**/*.joblib
+**/*.pkl
+**/*.csv
+**/*.parquet
+data/
+models/
+**/__pycache__/

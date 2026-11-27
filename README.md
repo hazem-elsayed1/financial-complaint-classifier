@@ -586,6 +586,9 @@ financial-complaint-classifier/
 |       `-- tests.yml
 |
 |-- .gitignore
+|-- .dockerignore
+|-- Dockerfile
+|-- requirements-api.txt
 |-- requirements.txt
 |-- requirements-dev.txt
 `-- README.md
@@ -599,7 +602,7 @@ This tree describes the working project, not a guarantee that every file is comm
 
 ## 10. Installation
 
-Python 3.14 was used in the reported local development and test environment.
+Python 3.14 was used in the reported local development and test environment (3.14.6 for the API and Docker milestones). The CI workflow selects Python `3.14`, which resolves to the newest 3.14.x patch release available on the runner. The Docker image pins Python 3.14.6 by image digest. CI and the container can therefore run different 3.14 patch releases.
 
 ### 10.1 Clone the Repository
 
@@ -644,7 +647,9 @@ python -m pip install -r requirements-dev.txt
 
 The development requirements include the runtime dependencies.
 
-SciPy is explicitly pinned as a runtime dependency (`scipy==1.18.1`), because grouping directly imports sparse matrices and graph connected components. It is not left solely to scikit-learn's transitive dependencies. The other pinned runtime packages are pandas, NumPy, scikit-learn, joblib, and Streamlit.
+SciPy is explicitly pinned as a runtime dependency (`scipy==1.18.1`), because grouping directly imports sparse matrices and graph connected components. It is not left solely to scikit-learn's transitive dependencies. The other pinned runtime packages are pandas, NumPy, scikit-learn, joblib, Streamlit, FastAPI, and uvicorn.
+
+The pins needed to serve the model (NumPy, SciPy, scikit-learn, joblib, FastAPI, and uvicorn) live in `requirements-api.txt`, which `requirements.txt` includes. The Docker image installs only `requirements-api.txt`, so each pin is defined once and local, CI, and container installs use the same pinned package versions.
 
 ## 11. Dataset Preparation
 
@@ -918,6 +923,28 @@ python -m scripts.check_api_parity --model models/ticket_classifier.joblib
 
 This prints a summary to stdout and writes nothing. To also save the full per-case report, pass `--output` with a path that does not exist yet, for example `--output reports/api_parity_check_rerun.json`. The file is created exclusively: if it already exists, or appears while the check runs, nothing is written, an error is printed, and the command exits with code `2`. There is no option to replace an existing file. The recorded result is [api_parity_check.json](reports/api_parity_check.json). The parity check compares API and direct predictions on invented inputs only; it does not measure accuracy and is not part of the frozen evaluation.
 
+### 14.2 Running the API in Docker
+
+The `Dockerfile` packages the API on `python:3.14.6-slim`, pinned by digest, and installs only `requirements-api.txt`. The image always uses Python 3.14.6, while CI selects the newest Python 3.14.x (Section 17). The image contains `src/api.py`, `src/predict.py`, and the requirements file. It contains no model, dataset, or training code, and it runs as an unprivileged user (UID 10001).
+
+`.dockerignore` is an allowlist: only those three files are sent to the Docker build. `data/`, `models/`, `*.joblib`, `*.csv`, reports, notebooks, and `.venv` never leave the machine during a build.
+
+Build the image:
+
+```powershell
+docker build -t complaint-classifier-api:m2 .
+```
+
+Run it with the existing model mounted read-only. The container's root filesystem is also read-only, and the port is published on the local machine only:
+
+```powershell
+docker run --rm --read-only -p 127.0.0.1:8000:8000 --mount "type=bind,source=$PWD\models\ticket_classifier.joblib,target=/models/ticket_classifier.joblib,readonly" complaint-classifier-api:m2
+```
+
+The image sets `COMPLAINT_MODEL_PATH=/models/ticket_classifier.joblib`. To mount a model elsewhere, pass `-e COMPLAINT_MODEL_PATH=<path inside the container>`. The endpoints and responses are the same as in Section 14.1, and a Docker `HEALTHCHECK` polls `/health`.
+
+If no model is mounted, or the mounted file is not a fitted pipeline, the container exits at startup with code `3` and logs `FileNotFoundError` or `ValueError`. It never serves requests without a usable model.
+
 ## 15. Interactive Streamlit Demo
 
 ![Streamlit Demo](assets/streamlit-demo.png)
@@ -1019,7 +1046,7 @@ Workflow:
 
 `.github/workflows/tests.yml`
 
-The documented workflow runs on pushes and pull requests using Ubuntu and Python 3.14.
+The documented workflow runs on pushes and pull requests using Ubuntu and Python 3.14. It requests `python-version: "3.14"`, so `actions/setup-python` installs the newest available 3.14.x patch release, not a fixed patch. The Docker image instead pins Python 3.14.6 (Section 14.2). CI does not build or run the Docker image.
 
 It installs development dependencies and executes:
 
@@ -1122,8 +1149,6 @@ The current model is a tested ML prototype and should not be described as produc
 
 Planned engineering improvements include:
 
-- Expose the trained classifier through a FastAPI inference service.
-- Package the inference service with Docker.
 - Add API input validation and structured error handling.
 - Add integration tests for the inference API.
 - Add model artifact metadata and integrity verification.
