@@ -2,9 +2,21 @@
 
 [![Python Tests](https://github.com/hazem-elsayed1/financial-complaint-classifier/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/hazem-elsayed1/financial-complaint-classifier/actions/workflows/tests.yml)
 
-Classifies consumer financial complaint narratives into **11 financial product categories** with a TF-IDF and Logistic Regression pipeline, trained on complaints derived from the CFPB Consumer Complaint Database. Model performance is measured on a frozen, held-out test partition. The frozen split keeps groups identified by the project's near-duplicate grouping procedure within a single partition. It does not remove all similar text: under the classifier's own TF-IDF representation, 426 of the 4,142 test complaints (10.3%) still have a cosine similarity of at least 0.95 to a complaint in the combined train and validation partitions. See the [frozen-split similarity diagnostic](#57-frozen-split-near-duplicate-diagnostic) and its [report](reports/near_duplicate_frozen_split.json).
+Classifies consumer financial complaint narratives into **11 financial product categories** with a TF-IDF and Logistic Regression pipeline, trained on complaints derived from the CFPB Consumer Complaint Database.
+
+**Frozen holdout result:** **82.16%** accuracy and **72.14%** macro-F1 on **4,142** held-out test complaints ([details](#results-at-a-glance)).
+
+**[Watch demo](#demo)** · **[Run locally](#run-locally)**
+
+### Demo
+
+![Demo: choosing the "Duplicate credit card charge" example, selecting Classify complaint, and seeing the predicted product Credit card](assets/streamlit-demo.gif)
+
+*A synthetic duplicate-charge complaint is classified as Credit card using the saved model.*
 
 ### Results at a Glance
+
+Model performance is measured on a frozen, held-out test partition. The frozen split keeps groups identified by the project's near-duplicate grouping procedure within a single partition. It does not remove all similar text: under the classifier's own TF-IDF representation, 426 of the 4,142 test complaints (10.3%) still have a cosine similarity of at least 0.95 to a complaint in the combined train and validation partitions. See the [frozen-split similarity diagnostic](#57-frozen-split-near-duplicate-diagnostic) and its [report](reports/near_duplicate_frozen_split.json).
 
 The three rows below are separate kinds of evidence. Only the first measures model performance.
 
@@ -16,18 +28,23 @@ The three rows below are separate kinds of evidence. Only the first measures mod
 
 An earlier random stratified split reported 81.55% accuracy ([Section 4.1](#41-original-stratified-evaluation)). It used a different test set and is kept only as a historical baseline; it is not directly comparable with the frozen holdout.
 
-**Example prediction.** The saved model classifies *"My credit card payment was charged twice, and the bank has refused to correct the transaction."* as **Credit card**. This result was checked by direct inference with `src.predict` and through the FastAPI service running in Docker. The Streamlit demo below shows the same complaint and prediction.
+### Run Locally
 
-![Streamlit demo classifying a duplicate credit card charge complaint as Credit card](assets/streamlit-demo.png)
+**Local inference requires the saved model artifact.** The trained model and the complaint dataset are not included in this repository. The Streamlit app, the FastAPI service, and the Docker container all load `models/ticket_classifier.joblib`, produced as described in [Section 13](#13-training-the-model). Without it, the Streamlit app explains that the trained model was not found and disables classification, and the API and the Docker container stop at startup.
 
-### Ways to Run It
+With the model in place, start the demo:
 
-- **Streamlit demo**: `python -m streamlit run app.py` ([Section 15](#15-interactive-streamlit-demo)).
+```powershell
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
+
+Then open `http://localhost:8501`. Other ways to run and check the project:
+
+- **Streamlit demo**: features and details in [Section 15](#15-interactive-streamlit-demo).
 - **FastAPI service**: `GET /health` and `POST /predict` ([Section 14.1](#141-local-inference-api)).
-- **Docker**: the FastAPI service in a container ([Section 14.2](#142-running-the-api-in-docker)).
+- **Docker**: the FastAPI service in a container. The image contains no model; the container mounts the local model file read-only ([Section 14.2](#142-running-the-api-in-docker)).
 - **CI**: [GitHub Actions workflow](.github/workflows/tests.yml) ([Section 17](#17-continuous-integration)).
-
-The trained model and the complaint dataset are not included in this repository. Streamlit, FastAPI, and Docker inference all require the existing local model artifact `models/ticket_classifier.joblib`, produced as described in [Section 13](#13-training-the-model). The Docker image contains no model: the container mounts that local file read-only at startup and exits if it is missing.
 
 ## 1. Project Overview
 
