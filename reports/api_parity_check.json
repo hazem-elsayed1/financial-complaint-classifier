@@ -1,0 +1,125 @@
+{
+  "parity_status": "passed",
+  "checked_at_utc": "2026-11-27T17:50:03+00:00",
+  "model_file": "ticket_classifier.joblib",
+  "model_sha256_before": "df46f285416d9fadafd7db38ecd2d5817e17197c23f6253b6a4b4c2c4527dee7",
+  "model_sha256_after": "df46f285416d9fadafd7db38ecd2d5817e17197c23f6253b6a4b4c2c4527dee7",
+  "model_unchanged": true,
+  "input_source": "synthetic_complaints",
+  "total_cases": 15,
+  "matching_cases": 15,
+  "mismatched_cases": 0,
+  "environment": {
+    "python": "3.14.6",
+    "scikit-learn": "1.9.1",
+    "joblib": "1.6.0",
+    "fastapi": "0.165.0"
+  },
+  "cases": [
+    {
+      "text": "My credit card was charged twice for the same purchase and the bank has not reversed it.",
+      "direct_prediction": "Credit card",
+      "api_status_code": 200,
+      "api_prediction": "Credit card",
+      "match": true
+    },
+    {
+      "text": "The mortgage servicer misapplied my monthly payment and now reports me as late.",
+      "direct_prediction": "Mortgage",
+      "api_status_code": 200,
+      "api_prediction": "Mortgage",
+      "match": true
+    },
+    {
+      "text": "A debt collector keeps calling my workplace about a debt I already paid off.",
+      "direct_prediction": "Debt collection",
+      "api_status_code": 200,
+      "api_prediction": "Debt collection",
+      "match": true
+    },
+    {
+      "text": "My credit report lists an account I never opened and the bureau will not remove it.",
+      "direct_prediction": "Credit reporting or other personal consumer reports",
+      "api_status_code": 200,
+      "api_prediction": "Credit reporting or other personal consumer reports",
+      "match": true
+    },
+    {
+      "text": "The bank closed my checking account without notice and is holding my deposit.",
+      "direct_prediction": "Checking or savings account",
+      "api_status_code": 200,
+      "api_prediction": "Checking or savings account",
+      "match": true
+    },
+    {
+      "text": "My student loan servicer put my loans into forbearance without asking me.",
+      "direct_prediction": "Student loan",
+      "api_status_code": 200,
+      "api_prediction": "Student loan",
+      "match": true
+    },
+    {
+      "text": "The dealership financing company added fees to my auto loan that I never agreed to.",
+      "direct_prediction": "Vehicle loan or lease",
+      "api_status_code": 200,
+      "api_prediction": "Vehicle loan or lease",
+      "match": true
+    },
+    {
+      "text": "I sent money through a transfer app to the wrong person and the company refuses to help.",
+      "direct_prediction": "Money transfer, virtual currency, or money service",
+      "api_status_code": 200,
+      "api_prediction": "Money transfer, virtual currency, or money service",
+      "match": true
+    },
+    {
+      "text": "The payday lender withdrew more from my account than the agreed repayment amount.",
+      "direct_prediction": "Payday loan, title loan, personal loan, or advance loan",
+      "api_status_code": 200,
+      "api_prediction": "Payday loan, title loan, personal loan, or advance loan",
+      "match": true
+    },
+    {
+      "text": "My prepaid card was frozen and customer service will not tell me why.",
+      "direct_prediction": "Prepaid card",
+      "api_status_code": 200,
+      "api_prediction": "Prepaid card",
+      "match": true
+    },
+    {
+      "text": "The personal loan company keeps changing my due date and charging late fees.",
+      "direct_prediction": "Payday loan, title loan, personal loan, or advance loan",
+      "api_status_code": 200,
+      "api_prediction": "Payday loan, title loan, personal loan, or advance loan",
+      "match": true
+    },
+    {
+      "text": "  credit card   interest rate went up without any warning  ",
+      "direct_prediction": "Credit card",
+      "api_status_code": 200,
+      "api_prediction": "Credit card",
+      "match": true
+    },
+    {
+      "text": "CREDIT CARD FRAUD CHARGES NOT REFUNDED",
+      "direct_prediction": "Credit card",
+      "api_status_code": 200,
+      "api_prediction": "Credit card",
+      "match": true
+    },
+    {
+      "text": "Mi tarjeta de crédito tiene cargos que no reconozco — ünïcode test.",
+      "direct_prediction": "Debt collection",
+      "api_status_code": 200,
+      "api_prediction": "Debt collection",
+      "match": true
+    },
+    {
+      "text": "late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee late fee ",
+      "direct_prediction": "Credit card",
+      "api_status_code": 200,
+      "api_prediction": "Credit card",
+      "match": true
+    }
+  ]
+}

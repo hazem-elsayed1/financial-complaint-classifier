@@ -550,15 +550,20 @@ financial-complaint-classifier/
 |   |-- grouping.py
 |   |-- data_integrity.py
 |   |-- near_duplicate_analysis.py
-|   `-- group_aware_evaluation.py
+|   |-- group_aware_evaluation.py
+|   `-- api.py
 |
 |-- scripts/
 |   |-- create_split_manifest.py
 |   |-- create_split_metadata.py
 |   |-- migrate_split_metadata.py
-|   `-- verify_group_isolation.py
+|   |-- verify_group_isolation.py
+|   `-- check_api_parity.py
 |
 |-- tests/
+|   |-- conftest.py
+|   |-- test_api.py
+|   |-- test_check_api_parity.py
 |   |-- test_data_processing.py
 |   |-- test_train.py
 |   |-- test_predict.py
@@ -573,7 +578,8 @@ financial-complaint-classifier/
 |   |-- test_metrics.json
 |   |-- near_duplicate_analysis.json
 |   |-- near_duplicate_frozen_split.json
-|   `-- group_aware_evaluation.json
+|   |-- group_aware_evaluation.json
+|   `-- api_parity_check.json
 |
 |-- .github/
 |   `-- workflows/
@@ -868,6 +874,50 @@ print(prediction)
 
 Predictions represent model-generated financial product classifications and should not be treated as verified financial or legal conclusions.
 
+### 14.1 Local Inference API
+
+`src/api.py` serves the same model over HTTP with FastAPI. It loads the model once at startup with `load_model()` and classifies each request with `predict_complaint()`, so it adds no separate inference logic.
+
+The model path is chosen in this order:
+
+1. The `model_path` argument to `create_app()`.
+2. The `COMPLAINT_MODEL_PATH` environment variable.
+3. `models/ticket_classifier.joblib`, relative to the working directory.
+
+Startup fails, and the server accepts no requests, if the resolved file does not exist (`FileNotFoundError`) or does not hold a scikit-learn `Pipeline` whose every step is fitted (`ValueError`). Each step is checked because scikit-learn's own `Pipeline` check inspects only the last step. Only point the API at trusted model artifacts, for the joblib reason given in Section 13.
+
+Start the server on the local machine only:
+
+```powershell
+$env:COMPLAINT_MODEL_PATH = "models/ticket_classifier.joblib"
+python -m uvicorn src.api:app --host 127.0.0.1 --port 8000
+```
+
+Endpoints:
+
+| Method | Path | Request body | Success response |
+|---|---|---|---|
+| `GET` | `/health` | none | `{"status": "ok"}` |
+| `POST` | `/predict` | `{"text": "<complaint>"}` | `{"product": "<category>"}` |
+
+Example:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/predict -ContentType "application/json" -Body '{"text": "My credit card was charged twice."}'
+```
+
+`/predict` returns `422` when `text` is missing, is not a string, is empty or whitespace-only, or when the body contains other fields or is not valid JSON. Accepted text is passed to the model exactly as sent, without trimming. An error raised by the model during prediction returns `500`, not `422`, and its message is not included in the response. Interactive documentation is served at `http://127.0.0.1:8000/docs`.
+
+#### API Parity Check
+
+`scripts/check_api_parity.py` confirms that the API returns the same labels as direct inference with a saved model. It loads the model directly and classifies a fixed list of invented complaints, then starts the API in-process on the same file (no network) and posts the same complaints. It hashes the model before and after and never writes to it.
+
+```powershell
+python -m scripts.check_api_parity --model models/ticket_classifier.joblib
+```
+
+This prints a summary to stdout and writes nothing. To also save the full per-case report, pass `--output` with a path that does not exist yet, for example `--output reports/api_parity_check_rerun.json`. The file is created exclusively: if it already exists, or appears while the check runs, nothing is written, an error is printed, and the command exits with code `2`. There is no option to replace an existing file. The recorded result is [api_parity_check.json](reports/api_parity_check.json). The parity check compares API and direct predictions on invented inputs only; it does not measure accuracy and is not part of the frozen evaluation.
+
 ## 15. Interactive Streamlit Demo
 
 ![Streamlit Demo](assets/streamlit-demo.png)
@@ -928,7 +978,7 @@ Or use:
 python -m pytest tests/ -q
 ```
 
-The latest verified local complete regression run passed **235 tests** using `python -m pytest tests/ -q`. This is a local result, not a claim about a GitHub Actions run or deployed service.
+The latest verified local complete regression run passed **283 tests** using `python -m pytest tests/ -q`. This is a local result, not a claim about a GitHub Actions run or deployed service.
 
 The tests cover:
 
@@ -956,6 +1006,8 @@ The tests cover:
 - Controlled metadata migration, provenance warnings, field preservation, and candidate overwrite refusal.
 - Frozen diagnostic membership, vectorizer metadata, subset metrics, and historical report protection.
 - Missing, blank, integer, and boolean Product labels; rejection before model fitting.
+- FastAPI predictions, single model load at startup, model path configuration, invalid request rejection, unchanged text passed to the model, `500` responses for model errors, and startup failure for a missing, unfitted, partly fitted, or non-pipeline model, using synthetic models saved in a temporary directory.
+- API parity check logic, including mismatch detection, and refusal to replace an existing or concurrently created report, with the input model and the existing report left byte-for-byte unchanged.
 
 Automated tests supplement, but do not replace, validation on real data or production deployment testing.
 
