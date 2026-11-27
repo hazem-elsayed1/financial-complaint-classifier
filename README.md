@@ -1,10 +1,33 @@
 # Financial Complaint Classifier
 
-An NLP-based machine learning project that automatically classifies consumer financial complaints into **11 financial product categories** using TF-IDF and Logistic Regression.
+[![Python Tests](https://github.com/hazem-elsayed1/financial-complaint-classifier/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/hazem-elsayed1/financial-complaint-classifier/actions/workflows/tests.yml)
 
-The project focuses on reproducible machine learning, data quality, evaluation integrity, automated testing, and reusable inference components.
+Classifies consumer financial complaint narratives into **11 financial product categories** with a TF-IDF and Logistic Regression pipeline, trained on complaints derived from the CFPB Consumer Complaint Database. Model performance is measured on a frozen, held-out test partition. The frozen split keeps groups identified by the project's near-duplicate grouping procedure within a single partition. It does not remove all similar text: under the classifier's own TF-IDF representation, 426 of the 4,142 test complaints (10.3%) still have a cosine similarity of at least 0.95 to a training complaint. See the [frozen-split similarity diagnostic](#57-frozen-split-near-duplicate-diagnostic) and its [report](reports/near_duplicate_frozen_split.json).
 
-It includes a Streamlit application for interactive predictions.
+### Results at a Glance
+
+The three rows below are separate kinds of evidence. Only the first measures model performance.
+
+| Evidence | Result | What it shows |
+|---|---|---|
+| **Model performance**: frozen group-disjoint holdout | Accuracy **82.16%**, macro-F1 **72.14%** on **4,142** held-out test complaints | How well the model classifies complaints it was not fitted on. Macro-F1 weights all 11 classes equally, so weaker classes pull it below accuracy. Source: [test_metrics.json](reports/test_metrics.json), [Section 5.6](#56-group-disjoint-evaluation-results). |
+| **API prediction parity** | **15/15** invented complaints receive the same label from the API as from direct inference | The API serves the same model behavior as `src.predict`. It does not measure accuracy. Source: [api_parity_check.json](reports/api_parity_check.json), [Section 14.1](#141-local-inference-api). |
+| **Continuous integration** | Status shown by the badge above | Whether the automated test suite passes on Ubuntu with Python 3.14 for the latest commit on `main`. CI uses synthetic data and temporary models, not the CFPB dataset or the trained model, and does not build the Docker image. Source: [Section 17](#17-continuous-integration). |
+
+An earlier random stratified split reported 81.55% accuracy ([Section 4.1](#41-original-stratified-evaluation)). It used a different test set and is kept only as a historical baseline; it is not directly comparable with the frozen holdout.
+
+**Example prediction.** The saved model classifies *"My credit card payment was charged twice, and the bank has refused to correct the transaction."* as **Credit card**. This result was checked by direct inference with `src.predict` and through the FastAPI service running in Docker. The Streamlit demo below shows the same complaint and prediction.
+
+![Streamlit demo classifying a duplicate credit card charge complaint as Credit card](assets/streamlit-demo.png)
+
+### Ways to Run It
+
+- **Streamlit demo**: `python -m streamlit run app.py` ([Section 15](#15-interactive-streamlit-demo)).
+- **FastAPI service**: `GET /health` and `POST /predict` ([Section 14.1](#141-local-inference-api)).
+- **Docker**: the FastAPI service in a container ([Section 14.2](#142-running-the-api-in-docker)).
+- **CI**: [GitHub Actions workflow](.github/workflows/tests.yml) ([Section 17](#17-continuous-integration)).
+
+The trained model and the complaint dataset are not included in this repository. Streamlit, FastAPI, and Docker inference all require the existing local model artifact `models/ticket_classifier.joblib`, produced as described in [Section 13](#13-training-the-model). The Docker image contains no model: the container mounts that local file read-only at startup and exits if it is missing.
 
 ## 1. Project Overview
 
